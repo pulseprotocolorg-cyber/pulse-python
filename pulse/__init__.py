@@ -7,6 +7,8 @@ Universal semantic protocol for AI-to-AI communication.
 
 from pulse.version import __version__, __version_info__
 from pulse.message import PulseMessage
+from pulse.vocabulary import Vocabulary
+from pulse.validator import MessageValidator
 from pulse.exceptions import (
     PulseException,
     ValidationError,
@@ -22,6 +24,8 @@ __all__ = [
     "__version__",
     "__version_info__",
     "PulseMessage",
+    "Vocabulary",
+    "MessageValidator",
     "PulseException",
     "ValidationError",
     "EncodingError",

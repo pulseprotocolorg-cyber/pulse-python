@@ -3,6 +3,8 @@ from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 import uuid
 import json
+from pulse.validator import MessageValidator
+from pulse.exceptions import ValidationError
 
 
 class PulseMessage:
@@ -31,6 +33,7 @@ class PulseMessage:
         target: Optional[str] = None,
         parameters: Optional[Dict[str, Any]] = None,
         sender: str = "default-agent",
+        validate: bool = True,
     ) -> None:
         """
         Initialize a PULSE message.
@@ -40,6 +43,10 @@ class PulseMessage:
             target: Target object concept (e.g., "ENT.DATA.TEXT")
             parameters: Additional parameters for the action
             sender: Agent ID of the sender
+            validate: Whether to validate the message (default True)
+
+        Raises:
+            ValidationError: If validation is enabled and message is invalid
 
         Example:
             >>> message = PulseMessage(
@@ -55,6 +62,10 @@ class PulseMessage:
             "object": target,
             "parameters": parameters or {},
         }
+
+        # Validate message if requested
+        if validate:
+            self.validate()
 
     def _create_envelope(self, sender: str) -> Dict[str, Any]:
         """
@@ -144,3 +155,23 @@ class PulseMessage:
     def __str__(self) -> str:
         """Return human-readable string representation."""
         return self.to_json()
+
+    def validate(self, check_freshness: bool = False) -> bool:
+        """
+        Validate this message.
+
+        Args:
+            check_freshness: Whether to check timestamp freshness (default False)
+
+        Returns:
+            True if message is valid
+
+        Raises:
+            ValidationError: If message is invalid
+
+        Example:
+            >>> message = PulseMessage(action="ACT.QUERY.DATA", validate=False)
+            >>> message.validate()
+            True
+        """
+        return MessageValidator.validate_message(self, check_freshness=check_freshness)
