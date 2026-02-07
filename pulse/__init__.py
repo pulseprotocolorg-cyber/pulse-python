@@ -9,6 +9,7 @@ from pulse.version import __version__, __version_info__
 from pulse.message import PulseMessage
 from pulse.vocabulary import Vocabulary
 from pulse.validator import MessageValidator
+from pulse.encoder import Encoder, JSONEncoder, BinaryEncoder, CompactEncoder
 from pulse.exceptions import (
     PulseException,
     ValidationError,
@@ -26,6 +27,10 @@ __all__ = [
     "PulseMessage",
     "Vocabulary",
     "MessageValidator",
+    "Encoder",
+    "JSONEncoder",
+    "BinaryEncoder",
+    "CompactEncoder",
     "PulseException",
     "ValidationError",
     "EncodingError",
