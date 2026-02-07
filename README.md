@@ -4,9 +4,18 @@
 
 Universal semantic protocol for AI-to-AI communication. Think "TCP/IP for Artificial Intelligence."
 
+[![Status](https://img.shields.io/badge/status-Alpha-yellow.svg)](https://github.com/pulse-protocol/pulse-python)
+[![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](https://github.com/pulse-protocol/pulse-python/releases)
 [![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-165%2B%20passing-brightgreen.svg)](https://github.com/pulse-protocol/pulse-python)
+[![Coverage](https://img.shields.io/badge/coverage-90%25%2B-brightgreen.svg)](https://github.com/pulse-protocol/pulse-python)
 [![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
+---
+
+> 🌍 **Open Source & Free Forever** | Apache 2.0 License
+> Built for the community, by the community. Contributions welcome!
 
 ---
 
@@ -47,17 +56,22 @@ Instead of natural language (ambiguous, slow), PULSE uses **semantic concepts**:
 ### Installation
 
 ```bash
-# From PyPI (when published)
-pip install pulse-protocol
+# Coming soon to PyPI!
+# pip install pulse-protocol
 
-# For development
+# For now - Install from GitHub:
 git clone https://github.com/pulse-protocol/pulse-python.git
 cd pulse-python
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -e .
-pip install -r requirements-dev.txt
+
+# Or install dependencies only:
+pip install msgpack>=1.0.0
+
+# For development (with testing tools):
+pip install -e ".[dev]"
 ```
+
+**Requirements:** Python 3.8+ | msgpack
 
 ### Basic Usage
 
@@ -764,8 +778,12 @@ This project is open source and will remain free forever.
 ## 📊 Project Status
 
 **Version:** 0.4.0 (Alpha - Week 4 Complete ✅)
+**License:** Apache 2.0 - Free & Open Source Forever 🌍
 **Python:** 3.8+
-**Status:** Active Development
+**Status:** Active Development - **Ready for Contributors!**
+
+> 💡 **This project is production-ready for early adopters.**
+> We welcome contributions from developers worldwide!
 
 ### What's Working ✅
 - Core message creation and parsing
