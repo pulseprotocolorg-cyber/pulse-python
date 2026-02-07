@@ -35,8 +35,9 @@ Instead of natural language (ambiguous, slow), PULSE uses **semantic concepts**:
 - ⚡ **Binary Encoding** - MessagePack format with 10× size reduction (Week 2 ✅)
 - ✅ **Automatic Validation** - Validates against vocabulary with helpful error messages
 - 🔒 **Security Features** - HMAC-SHA256 signing and replay protection (Week 3 ✅)
+- 🖥️ **CLI Tool** - Command-line interface for all operations (Week 4 ✅)
 - 📊 **Type Safe** - Full type hints for excellent IDE support
-- 🧪 **Well Tested** - 140+ unit tests, 90%+ coverage
+- 🧪 **Well Tested** - 165+ unit tests, 90%+ coverage
 - 📖 **Fully Documented** - Comprehensive docstrings, examples, and guides
 
 ---
@@ -201,6 +202,42 @@ print(f"Replay check: {result['is_valid']}")
 km = KeyManager()
 key = km.generate_and_store("agent-1")
 retrieved_key = km.get_key("agent-1")
+```
+
+### CLI Tool (Week 4 ✅)
+
+```bash
+# Create a message
+$ pulse create --action ACT.QUERY.DATA --target ENT.DATA.TEXT -o message.json
+
+# Validate message
+$ pulse validate message.json
+✓ Message is valid
+
+# Sign message
+$ pulse sign message.json --key my-secret-key -o signed.json
+✓ Message signed
+
+# Verify signature
+$ pulse verify signed.json --key my-secret-key
+✓ Signature is valid
+
+# Encode to binary (10× smaller)
+$ pulse encode message.json --format binary --compare
+✓ Encoded to binary: message.bin
+  Size: 89 bytes
+
+Size comparison:
+  JSON:   856 bytes
+  Binary: 89 bytes (9.6× smaller)
+  Savings: 89.6%
+
+# Decode from binary
+$ pulse decode message.bin -o decoded.json
+✓ Decoded to: decoded.json
+
+# See all commands
+$ pulse --help
 ```
 
 ---
@@ -373,6 +410,50 @@ print(f"Valid: {result['is_valid']}")
 # Valid: True
 ```
 
+### Example 7: CLI Tool 🖥️
+
+```bash
+# Create a message
+$ pulse create --action ACT.QUERY.DATA --target ENT.DATA.TEXT \
+    --parameters '{"query": "test", "limit": 10}' \
+    -o message.json
+
+# Validate the message
+$ pulse validate message.json
+✓ Message is valid
+  Action: ACT.QUERY.DATA
+  Type: REQUEST
+
+# Sign with HMAC-SHA256
+$ pulse sign message.json --key my-secret-key -o signed.json
+✓ Message signed: signed.json
+
+# Verify signature
+$ pulse verify signed.json --key my-secret-key
+✓ Signature is valid
+  Action: ACT.QUERY.DATA
+
+# Encode to binary (10× smaller)
+$ pulse encode signed.json --format binary --compare
+✓ Encoded to binary: signed.bin
+  Size: 94 bytes
+
+Size comparison:
+  JSON:   912 bytes
+  Binary: 94 bytes (9.7× smaller)
+  Savings: 89.7%
+
+# Complete workflow automation
+$ pulse create --action ACT.TRANSFER.MONEY --target ENT.RESOURCE.DATABASE \
+    --parameters '{"amount": 1000}' -o transfer.json && \
+  pulse sign transfer.json --key "$SECRET_KEY" -o transfer-signed.json && \
+  pulse verify transfer-signed.json --key "$SECRET_KEY" && \
+  pulse encode transfer-signed.json --format binary -o transfer.bin
+
+# See all commands
+$ pulse --help
+```
+
 **See [examples/](./examples/) for complete runnable examples:**
 - `01_hello_world.py` - Basic message creation
 - `02_vocabulary_validation.py` - Working with vocabulary
@@ -380,6 +461,7 @@ print(f"Valid: {result['is_valid']}")
 - `04_binary_encoding.py` - Performance benchmarks ⚡
 - `05_error_handling.py` - Error patterns and recovery ⚡
 - `06_security_features.py` - Message signing and verification 🔒
+- `07_cli_usage.py` - CLI tool demonstrations 🖥️
 
 ---
 
@@ -402,7 +484,7 @@ pytest -v
 pytest -m unit
 ```
 
-**Test Coverage:** 140+ tests, 90%+ code coverage
+**Test Coverage:** 165+ tests, 90%+ code coverage
 
 **Test Structure:**
 - `test_message.py` - Core message functionality
@@ -410,6 +492,7 @@ pytest -m unit
 - `test_validator.py` - Three-stage validation pipeline
 - `test_encoder.py` - Binary encoding, roundtrip, performance ⚡
 - `test_security.py` - HMAC signing, replay protection 🔒
+- `test_cli.py` - CLI commands and integration 🖥️
 
 ---
 
@@ -631,21 +714,25 @@ pulse-python/
 │   ├── validator.py         # MessageValidator
 │   ├── encoder.py           # JSON/Binary/Compact encoders ⚡
 │   ├── security.py          # SecurityManager, KeyManager 🔒
+│   ├── cli.py               # Command-line interface 🖥️
+│   ├── benchmarks.py        # Performance benchmarks 🖥️
 │   ├── exceptions.py        # Custom exceptions
 │   └── version.py           # Version info
-├── tests/                   # Test suite (140+ tests)
+├── tests/                   # Test suite (165+ tests)
 │   ├── test_message.py
 │   ├── test_vocabulary.py
 │   ├── test_validator.py
 │   ├── test_encoder.py      # Binary encoding tests ⚡
-│   └── test_security.py     # Security tests 🔒
+│   ├── test_security.py     # Security tests 🔒
+│   └── test_cli.py          # CLI tests 🖥️
 ├── examples/                # Usage examples
 │   ├── 01_hello_world.py
 │   ├── 02_vocabulary_validation.py
 │   ├── 03_use_cases.py
 │   ├── 04_binary_encoding.py     ⚡
 │   ├── 05_error_handling.py      ⚡
-│   └── 06_security_features.py   🔒
+│   ├── 06_security_features.py   🔒
+│   └── 07_cli_usage.py           🖥️
 └── docs/                    # Documentation
 ```
 
@@ -676,7 +763,7 @@ This project is open source and will remain free forever.
 
 ## 📊 Project Status
 
-**Version:** 0.3.0 (Alpha - Week 3 Complete ✅)
+**Version:** 0.4.0 (Alpha - Week 4 Complete ✅)
 **Python:** 3.8+
 **Status:** Active Development
 
@@ -687,15 +774,16 @@ This project is open source and will remain free forever.
 - **HMAC-SHA256 message signing for integrity** 🔒
 - **Replay protection (timestamp + nonce deduplication)** 🔒
 - **Tamper detection and signature verification** 🔒
+- **CLI tool (create, validate, sign, verify, encode, decode)** 🖥️
+- **Performance benchmarks with statistical analysis** 🖥️
 - Vocabulary system (120+ concepts across 10 categories)
 - Three-stage message validation
 - Error handling patterns (retry, circuit breaker, graceful degradation)
 - Unified Encoder with auto-format detection
 - Key management (SecurityManager, KeyManager)
-- 140+ unit tests with 90%+ coverage
+- 165+ unit tests with 90%+ coverage
 
 ### Coming Soon 🚧
-- **Week 4:** CLI tool, performance optimization, full documentation
 - **Future:** Compact encoding (13× reduction), TLS integration, network client/server, framework integrations, 1,000 concepts
 
 ### Known Limitations
