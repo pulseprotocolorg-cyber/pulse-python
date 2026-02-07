@@ -34,9 +34,9 @@ Instead of natural language (ambiguous, slow), PULSE uses **semantic concepts**:
 - 📝 **JSON Encoding** - Human-readable format for debugging and development
 - ⚡ **Binary Encoding** - MessagePack format with 10× size reduction (Week 2 ✅)
 - ✅ **Automatic Validation** - Validates against vocabulary with helpful error messages
-- 🔒 **Security Ready** - Framework for HMAC signing and replay protection (Week 3)
+- 🔒 **Security Features** - HMAC-SHA256 signing and replay protection (Week 3 ✅)
 - 📊 **Type Safe** - Full type hints for excellent IDE support
-- 🧪 **Well Tested** - 100+ unit tests, 90%+ coverage
+- 🧪 **Well Tested** - 140+ unit tests, 90%+ coverage
 - 📖 **Fully Documented** - Comprehensive docstrings, examples, and guides
 
 ---
@@ -162,6 +162,45 @@ binary_bytes = encoder.encode(message, format="binary")
 
 # Auto-detect format when decoding
 decoded_msg = encoder.decode(binary_bytes)  # Detects binary format
+```
+
+### Security Features (Week 3 ✅)
+
+```python
+from pulse import PulseMessage, SecurityManager, KeyManager
+
+# Initialize security manager with secret key
+security = SecurityManager(secret_key="my-secret-key")
+
+# Create and sign a message
+message = PulseMessage(
+    action="ACT.TRANSFER.MONEY",
+    target="ENT.RESOURCE.DATABASE",
+    parameters={"amount": 1000, "to": "account-123"}
+)
+
+# Sign message with HMAC-SHA256
+signature = security.sign_message(message)
+print(f"Signature: {signature[:32]}...")
+
+# Verify signature
+is_valid = security.verify_signature(message)
+print(f"Valid: {is_valid}")  # True
+
+# Tamper detection
+message.content['parameters']['amount'] = 1000000
+is_valid = security.verify_signature(message)
+print(f"Valid after tampering: {is_valid}")  # False - tampering detected!
+
+# Replay protection
+nonce_store = set()
+result = security.check_replay_protection(message, nonce_store=nonce_store)
+print(f"Replay check: {result['is_valid']}")
+
+# Key management
+km = KeyManager()
+key = km.generate_and_store("agent-1")
+retrieved_key = km.get_key("agent-1")
 ```
 
 ---
@@ -293,12 +332,54 @@ for attempt in range(1, max_retries + 1):
             print("Max retries reached")
 ```
 
+### Example 6: Security Features 🔒
+
+```python
+from pulse import PulseMessage, SecurityManager, KeyManager
+
+# Create security manager
+security = SecurityManager(secret_key="my-secret-key")
+
+# Sign a message
+message = PulseMessage(
+    action="ACT.ANALYZE.SENTIMENT",
+    target="ENT.DATA.TEXT",
+    parameters={"text": "PULSE is secure!"}
+)
+
+signature = security.sign_message(message)
+print(f"Signed: {signature[:32]}...")
+
+# Verify signature
+is_valid = security.verify_signature(message)
+print(f"Valid: {is_valid}")  # True
+
+# Detect tampering
+message.content['parameters']['text'] = "MODIFIED"
+is_valid = security.verify_signature(message)
+print(f"Valid after tampering: {is_valid}")  # False!
+
+# Replay protection
+nonce_store = set()
+result = security.check_replay_protection(message, nonce_store=nonce_store)
+print(f"Age: {result['age_seconds']:.2f}s")
+print(f"Valid: {result['is_valid']}")
+
+# Typical output:
+# Signed: a3f7b2c8...
+# Valid: True
+# Valid after tampering: False
+# Age: 0.02s
+# Valid: True
+```
+
 **See [examples/](./examples/) for complete runnable examples:**
 - `01_hello_world.py` - Basic message creation
 - `02_vocabulary_validation.py` - Working with vocabulary
 - `03_use_cases.py` - Real-world scenarios
 - `04_binary_encoding.py` - Performance benchmarks ⚡
 - `05_error_handling.py` - Error patterns and recovery ⚡
+- `06_security_features.py` - Message signing and verification 🔒
 
 ---
 
@@ -321,13 +402,14 @@ pytest -v
 pytest -m unit
 ```
 
-**Test Coverage:** 100+ tests, 90%+ code coverage
+**Test Coverage:** 140+ tests, 90%+ code coverage
 
 **Test Structure:**
 - `test_message.py` - Core message functionality
 - `test_vocabulary.py` - Vocabulary and concept validation
 - `test_validator.py` - Three-stage validation pipeline
 - `test_encoder.py` - Binary encoding, roundtrip, performance ⚡
+- `test_security.py` - HMAC signing, replay protection 🔒
 
 ---
 
@@ -453,6 +535,54 @@ decoded = binary_encoder.decode(binary_bytes)
 - `"binary"` - MessagePack, ~80 bytes (10× reduction) ⚡
 - `"compact"` - Custom format, ~60 bytes (13× reduction) - Coming soon
 
+### Security Classes 🔒
+
+```python
+from pulse import SecurityManager, KeyManager
+
+# SecurityManager - HMAC-SHA256 signing and verification
+security = SecurityManager(secret_key="my-secret-key")
+
+# Sign message
+message = PulseMessage(action="ACT.QUERY.DATA")
+signature = security.sign_message(message)
+
+# Verify signature
+is_valid = security.verify_signature(message)
+
+# Check replay protection
+result = security.check_replay_protection(
+    message,
+    max_age_seconds=300,  # 5 minutes
+    nonce_store=set()     # For nonce deduplication
+)
+
+# KeyManager - Simple key storage
+km = KeyManager()
+key = km.generate_and_store("agent-1")
+retrieved = km.get_key("agent-1")
+```
+
+**SecurityManager Methods:**
+- `sign_message(message) -> str` - Sign message with HMAC-SHA256
+- `verify_signature(message, expected_signature=None) -> bool` - Verify signature
+- `check_replay_protection(message, max_age_seconds=300, nonce_store=None) -> dict` - Check replay indicators
+- `generate_key() -> str` - Static method to generate secure random key
+
+**KeyManager Methods:**
+- `generate_and_store(agent_id) -> str` - Generate and store key for agent
+- `store_key(agent_id, key)` - Store existing key
+- `get_key(agent_id) -> Optional[str]` - Retrieve stored key
+- `remove_key(agent_id) -> bool` - Remove stored key
+- `list_agents() -> list` - List all agents with keys
+
+**Security Features:**
+- HMAC-SHA256 message signing
+- Constant-time signature comparison (timing attack protection)
+- Replay protection (timestamp freshness + nonce deduplication)
+- Tamper detection (any modification invalidates signature)
+- Performance: ~1-2ms per operation
+
 ---
 
 ## 🛠️ Development
@@ -500,19 +630,22 @@ pulse-python/
 │   ├── vocabulary.py        # Vocabulary system (120+ concepts)
 │   ├── validator.py         # MessageValidator
 │   ├── encoder.py           # JSON/Binary/Compact encoders ⚡
+│   ├── security.py          # SecurityManager, KeyManager 🔒
 │   ├── exceptions.py        # Custom exceptions
 │   └── version.py           # Version info
-├── tests/                   # Test suite (100+ tests)
+├── tests/                   # Test suite (140+ tests)
 │   ├── test_message.py
 │   ├── test_vocabulary.py
 │   ├── test_validator.py
-│   └── test_encoder.py      # Binary encoding tests ⚡
+│   ├── test_encoder.py      # Binary encoding tests ⚡
+│   └── test_security.py     # Security tests 🔒
 ├── examples/                # Usage examples
 │   ├── 01_hello_world.py
 │   ├── 02_vocabulary_validation.py
 │   ├── 03_use_cases.py
 │   ├── 04_binary_encoding.py     ⚡
-│   └── 05_error_handling.py      ⚡
+│   ├── 05_error_handling.py      ⚡
+│   └── 06_security_features.py   🔒
 └── docs/                    # Documentation
 ```
 
@@ -543,7 +676,7 @@ This project is open source and will remain free forever.
 
 ## 📊 Project Status
 
-**Version:** 0.2.0 (Alpha - Week 2 Complete ✅)
+**Version:** 0.3.0 (Alpha - Week 3 Complete ✅)
 **Python:** 3.8+
 **Status:** Active Development
 
@@ -551,21 +684,24 @@ This project is open source and will remain free forever.
 - Core message creation and parsing
 - JSON encoding/decoding (human-readable)
 - **Binary encoding/decoding (MessagePack, 10× size reduction)** ⚡
+- **HMAC-SHA256 message signing for integrity** 🔒
+- **Replay protection (timestamp + nonce deduplication)** 🔒
+- **Tamper detection and signature verification** 🔒
 - Vocabulary system (120+ concepts across 10 categories)
 - Three-stage message validation
 - Error handling patterns (retry, circuit breaker, graceful degradation)
 - Unified Encoder with auto-format detection
-- 100+ unit tests with 90%+ coverage
+- Key management (SecurityManager, KeyManager)
+- 140+ unit tests with 90%+ coverage
 
 ### Coming Soon 🚧
-- **Week 3:** Security (HMAC signing, replay protection, TLS)
 - **Week 4:** CLI tool, performance optimization, full documentation
-- **Future:** Compact encoding (13× reduction), network client/server, framework integrations, 1,000 concepts
+- **Future:** Compact encoding (13× reduction), TLS integration, network client/server, framework integrations, 1,000 concepts
 
 ### Known Limitations
 - Vocabulary contains 120 concepts (target: 1,000)
 - Compact encoding not yet implemented (placeholder in place)
-- Security features framework only (implementation in Week 3)
+- TLS integration not yet implemented (Week 4)
 - No network transport yet (Week 4)
 
 ---

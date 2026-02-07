@@ -8,11 +8,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- Week 3: Security features (HMAC signing, replay protection, TLS)
-- Week 4: CLI tool, performance optimization
+- Week 4: CLI tool, performance optimization, full documentation
+- Future: TLS integration for transport security
 - Future: Compact encoding (13× size reduction)
 - Future: Network client/server implementation
 - Future: Expand vocabulary to 1,000 concepts
+
+## [0.3.0] - 2025-02-05
+
+### Added 🔒
+- **HMAC-SHA256 message signing** for integrity verification
+  - Deterministic signing (same message + key = same signature)
+  - Constant-time signature comparison (timing attack protection)
+  - Tamper detection for any message modification
+  - ~1-2ms overhead per operation
+- **SecurityManager class** for signing and verification
+  - `sign_message()` - Sign with HMAC-SHA256
+  - `verify_signature()` - Verify signature with constant-time comparison
+  - `check_replay_protection()` - Validate timestamp and nonce
+  - `generate_key()` - Generate secure random keys (32 bytes)
+- **Replay attack protection**
+  - Timestamp freshness validation (default 5-minute window)
+  - Nonce deduplication support
+  - Configurable max age
+  - 60-second clock skew tolerance
+- **KeyManager class** for key storage
+  - Simple key store for development
+  - Generate, store, retrieve, remove keys
+  - Per-agent key management
+- **40+ security tests** covering all features
+  - Signing and verification roundtrips
+  - Tamper detection tests
+  - Replay attack simulations
+  - Key management tests
+  - Integration with binary encoding
+- **New example: 06_security_features.py**
+  - 8 comprehensive demonstrations
+  - Performance benchmarks
+  - Best practices and production checklist
+  - Secure message flow examples
+
+### Changed
+- Test suite expanded from 100+ to 140+ tests
+- README updated with security documentation
+- API Reference includes SecurityManager and KeyManager
+- Project status updated to Week 3 Complete
+
+### Technical Details
+- Canonical string creation for deterministic signing
+- Uses Python's `hmac` and `hashlib` (SHA256)
+- `secrets.token_urlsafe(32)` for key generation
+- Signatures stored in `envelope['signature']`
+- No encryption (integrity only, use TLS for confidentiality)
+
+### Security
+- Constant-time comparison prevents timing attacks
+- Replay protection prevents duplicate messages
+- Tamper detection catches all modifications
+- Defense in depth: signatures + TLS (when added) + validation
 
 ## [0.2.0] - 2025-02-05
 
@@ -80,6 +133,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 ## Release Notes
+
+### Version 0.3.0 - Security Features Release 🔒
+
+**Release Date:** 2025-02-05
+**Status:** Development - Week 3 Complete
+
+This release adds comprehensive security features with HMAC-SHA256 signing and replay protection.
+
+**New Features:**
+- 🔒 **HMAC-SHA256 signing** - Message integrity verification
+- 🔒 **Signature verification** - Constant-time comparison for security
+- 🔒 **Replay protection** - Timestamp freshness + nonce deduplication
+- 🔒 **Tamper detection** - Any modification invalidates signature
+- 🔒 **Key management** - SecurityManager and KeyManager classes
+- 📝 **Security examples** - 8 demonstrations with best practices
+
+**Security Features:**
+- Deterministic signing (same message + key = same signature)
+- Constant-time comparison prevents timing attacks
+- Configurable timestamp validity window (default 5 minutes)
+- 60-second clock skew tolerance
+- Secure random key generation (32 bytes)
+- Per-agent key storage and retrieval
+
+**Performance:**
+- Signing: ~1-2ms per operation
+- Verification: ~1-2ms per operation
+- Minimal overhead for production use
+- 1000 operations < 1 second
+
+**What's Working:**
+- ✅ Core message creation and parsing
+- ✅ JSON encoding/decoding (human-readable)
+- ✅ Binary encoding/decoding (10× size reduction) ⚡
+- ✅ **HMAC-SHA256 message signing** 🔒
+- ✅ **Replay protection (timestamp + nonce)** 🔒
+- ✅ **Tamper detection** 🔒
+- ✅ Semantic vocabulary (120+ concepts)
+- ✅ Three-stage message validation
+- ✅ Error handling patterns
+- ✅ Key management (SecurityManager, KeyManager)
+- ✅ 140+ unit tests with 90%+ coverage
+- ✅ Type-safe with full type hints
+- ✅ Comprehensive documentation
+
+**Known Limitations:**
+- Vocabulary contains 120 concepts (target: 1,000)
+- Compact encoding not yet implemented (placeholder in place)
+- TLS integration not yet implemented
+- Network client/server not yet implemented
+- Signatures provide integrity only (not confidentiality - use TLS)
+
+**Next Steps (Week 4):**
+- CLI tool for message creation and validation
+- Performance optimization and benchmarks
+- Full API documentation
+- TLS integration guide
+
+---
 
 ### Version 0.2.0 - Binary Encoding Release ⚡
 
