@@ -1,4 +1,2 @@
 # Core dependencies
-pydantic>=2.0
-cryptography>=41.0
 msgpack>=1.0

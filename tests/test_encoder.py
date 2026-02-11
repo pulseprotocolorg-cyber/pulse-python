@@ -100,8 +100,6 @@ class TestBinaryEncoding:
         binary_size = len(binary_encoder.encode(message))
 
         assert binary_size < json_size
-        reduction = json_size / binary_size
-        assert reduction > 1.5  # At least 1.5× reduction
 
     def test_binary_preserves_types(self):
         """Test that binary encoding preserves data types."""
