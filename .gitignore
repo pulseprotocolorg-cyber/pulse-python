@@ -45,6 +45,10 @@ coverage.xml
 .DS_Store
 Thumbs.db
 
+# Secrets
+.env
+.env.*
+
 # Project specific
 *.log
 .mypy_cache/

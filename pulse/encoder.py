@@ -160,31 +160,130 @@ class BinaryEncoder:
 
 class CompactEncoder:
     """
-    Ultra-compact custom binary encoding (Coming in Week 2).
+    Ultra-compact custom binary encoding for PULSE messages.
 
-    Will provide ~13× size reduction with custom binary format:
+    Provides ~13x size reduction with custom binary format:
     - Fixed-size header (version, type, timestamp)
     - Vocabulary index mapping (concept IDs to integers)
     - Variable-length encoding for parameters
     - Optimized for maximum efficiency
 
     Format specification:
-        Byte 0: Version (4 bits) + Type (4 bits)
-        Bytes 1-8: Timestamp (64-bit Unix time)
-        Bytes 9-16: Message ID (64-bit hash)
-        Bytes 17-20: Sender hash (32-bit)
-        Bytes 21-22: Action index (16-bit)
-        Bytes 23-24: Target index (16-bit)
-        Bytes 25+: Parameters (MessagePack)
+        Byte 0: Magic byte (0xPE)
+        Byte 1: Version (4 bits) + Type (4 bits)
+        Bytes 2-9: Timestamp (64-bit Unix microseconds)
+        Bytes 10-17: Message ID (64-bit hash of UUID)
+        Bytes 18-21: Sender hash (32-bit FNV-1a)
+        Bytes 22-23: Action index (16-bit vocabulary index)
+        Bytes 24-25: Target index (16-bit, 0xFFFF = None)
+        Bytes 26-29: Nonce hash (32-bit FNV-1a)
+        Bytes 30+: Parameters (MessagePack, omitted if empty)
+
+    Total fixed header: 30 bytes
+    With empty parameters: 30 bytes (~27x smaller than JSON)
+    With typical parameters: ~50-60 bytes (~13x smaller than JSON)
 
     Example:
-        >>> # Coming soon
         >>> compact = CompactEncoder.encode(message)
-        >>> print(len(compact))  # ~60 bytes (13× smaller than JSON)
+        >>> print(len(compact))  # ~50 bytes
+        >>> decoded = CompactEncoder.decode(compact)
     """
 
+    # Magic byte to identify compact format
+    MAGIC = 0xAE
+
+    # Type mapping
+    TYPE_MAP = {"REQUEST": 0, "RESPONSE": 1, "ERROR": 2, "STATUS": 3}
+    TYPE_REVERSE = {v: k for k, v in TYPE_MAP.items()}
+
+    # Build vocabulary index on first use
+    _vocab_index = None
+    _vocab_reverse = None
+
+    @classmethod
+    def _build_vocab_index(cls) -> None:
+        """Build vocabulary concept-to-index mapping."""
+        if cls._vocab_index is not None:
+            return
+
+        from pulse.vocabulary import Vocabulary
+
+        cls._vocab_index = {}
+        cls._vocab_reverse = {}
+
+        for i, concept in enumerate(sorted(Vocabulary.CONCEPTS.keys())):
+            cls._vocab_index[concept] = i
+            cls._vocab_reverse[i] = concept
+
     @staticmethod
-    def encode(message) -> bytes:
+    def _fnv1a_32(data: str) -> int:
+        """
+        Compute FNV-1a 32-bit hash.
+
+        Args:
+            data: String to hash
+
+        Returns:
+            32-bit hash value
+        """
+        h = 0x811C9DC5  # FNV offset basis
+        for byte in data.encode("utf-8"):
+            h ^= byte
+            h = (h * 0x01000193) & 0xFFFFFFFF  # FNV prime, mask to 32 bits
+        return h
+
+    @staticmethod
+    def _hash_uuid(uuid_str: str) -> int:
+        """
+        Hash UUID string to 64-bit integer.
+
+        Args:
+            uuid_str: UUID string
+
+        Returns:
+            64-bit hash value
+        """
+        import hashlib
+
+        digest = hashlib.md5(uuid_str.encode("utf-8")).digest()
+        return int.from_bytes(digest[:8], "big")
+
+    @staticmethod
+    def _timestamp_to_micros(timestamp_str: str) -> int:
+        """
+        Convert ISO timestamp to microseconds since epoch.
+
+        Args:
+            timestamp_str: ISO 8601 timestamp string
+
+        Returns:
+            Microseconds since Unix epoch
+        """
+        from datetime import datetime, timezone
+
+        if timestamp_str.endswith("Z"):
+            timestamp_str = timestamp_str[:-1] + "+00:00"
+        dt = datetime.fromisoformat(timestamp_str)
+        return int(dt.timestamp() * 1_000_000)
+
+    @staticmethod
+    def _micros_to_timestamp(micros: int) -> str:
+        """
+        Convert microseconds since epoch to ISO timestamp.
+
+        Args:
+            micros: Microseconds since Unix epoch
+
+        Returns:
+            ISO 8601 timestamp string with Z suffix
+        """
+        from datetime import datetime, timezone
+
+        dt = datetime.fromtimestamp(micros / 1_000_000, tz=timezone.utc)
+        return dt.isoformat().replace("+00:00", "Z")
+
+    @classmethod
+    def encode(cls, message) -> bytes:
         """
         Encode PULSE message to ultra-compact binary format.
 
@@ -195,12 +294,81 @@ class CompactEncoder:
             Compact binary encoded bytes
 
         Raises:
-            EncodingError: Not yet implemented
-        """
-        raise EncodingError("Compact encoding not yet implemented (coming in Week 2)")
+            EncodingError: If encoding fails
 
-    @staticmethod
-    def decode(data: bytes):
+        Example:
+            >>> compact = CompactEncoder.encode(message)
+            >>> print(f"Size: {len(compact)} bytes")
+        """
+        import struct
+
+        cls._build_vocab_index()
+
+        try:
+            envelope = message.envelope
+            content = message.content
+
+            # Byte 0: Magic
+            magic = cls.MAGIC
+
+            # Byte 1: Version (4 bits) + Type (4 bits)
+            version = int(float(envelope.get("version", "1.0")))
+            msg_type = cls.TYPE_MAP.get(message.type, 0)
+            version_type = ((version & 0x0F) << 4) | (msg_type & 0x0F)
+
+            # Bytes 2-9: Timestamp (64-bit microseconds)
+            timestamp_micros = cls._timestamp_to_micros(
+                envelope.get("timestamp", "2026-01-01T00:00:00Z")
+            )
+
+            # Bytes 10-17: Message ID hash (64-bit)
+            msg_id_hash = cls._hash_uuid(
+                envelope.get("message_id", "00000000-0000-0000-0000-000000000000")
+            )
+
+            # Bytes 18-21: Sender hash (32-bit)
+            sender_hash = cls._fnv1a_32(envelope.get("sender", ""))
+
+            # Bytes 22-23: Action index (16-bit)
+            action = content.get("action", "")
+            action_idx = cls._vocab_index.get(action, 0xFFFF)
+
+            # Bytes 24-25: Target index (16-bit, 0xFFFF = None)
+            target = content.get("object")
+            target_idx = cls._vocab_index.get(target, 0xFFFF) if target else 0xFFFF
+
+            # Bytes 26-29: Nonce hash (32-bit)
+            nonce_hash = cls._fnv1a_32(
+                envelope.get("nonce", "00000000-0000-0000-0000-000000000000")
+            )
+
+            # Pack fixed header (30 bytes)
+            msg_id_hash = msg_id_hash & 0xFFFFFFFFFFFFFFFF
+            header = struct.pack(
+                ">BBQQIHHI",
+                magic,           # B: 1 byte magic
+                version_type,    # B: 1 byte version+type
+                timestamp_micros,  # Q: 8 bytes timestamp
+                msg_id_hash,     # Q: 8 bytes message id (unsigned)
+                sender_hash,     # I: 4 bytes sender
+                action_idx,      # H: 2 bytes action
+                target_idx,      # H: 2 bytes target
+                nonce_hash,      # I: 4 bytes nonce
+            )
+
+            # Parameters: MessagePack (only if non-empty)
+            params = content.get("parameters", {})
+            if params:
+                params_data = msgpack.packb(params, use_bin_type=True)
+                return header + params_data
+            else:
+                return header
+
+        except Exception as e:
+            raise EncodingError(f"Compact encoding failed: {e}") from e
+
+    @classmethod
+    def decode(cls, data: bytes):
         """
         Decode compact binary to PULSE message.
 
@@ -211,9 +379,90 @@ class CompactEncoder:
             PulseMessage instance
 
         Raises:
-            DecodingError: Not yet implemented
+            DecodingError: If decoding fails
+
+        Example:
+            >>> message = CompactEncoder.decode(compact_data)
         """
-        raise DecodingError("Compact decoding not yet implemented (coming in Week 2)")
+        import struct
+        import uuid
+
+        cls._build_vocab_index()
+
+        try:
+            from pulse.message import PulseMessage
+
+            if len(data) < 30:
+                raise DecodingError(
+                    f"Compact data too short: {len(data)} bytes (minimum 30)"
+                )
+
+            # Verify magic byte
+            if data[0] != cls.MAGIC:
+                raise DecodingError(
+                    f"Invalid magic byte: 0x{data[0]:02X} (expected 0x{cls.MAGIC:02X})"
+                )
+
+            # Unpack fixed header
+            (
+                magic,
+                version_type,
+                timestamp_micros,
+                msg_id_hash,
+                sender_hash,
+                action_idx,
+                target_idx,
+                nonce_hash,
+            ) = struct.unpack(">BBQQIHHI", data[:30])
+
+            # Decode version and type
+            version = (version_type >> 4) & 0x0F
+            msg_type = cls.TYPE_REVERSE.get(version_type & 0x0F, "REQUEST")
+
+            # Decode timestamp
+            timestamp = cls._micros_to_timestamp(timestamp_micros)
+
+            # Decode action
+            action = cls._vocab_reverse.get(action_idx)
+            if action is None and action_idx != 0xFFFF:
+                action = f"UNKNOWN.{action_idx}"
+
+            # Decode target
+            target = None
+            if target_idx != 0xFFFF:
+                target = cls._vocab_reverse.get(target_idx)
+
+            # Decode parameters
+            params = {}
+            if len(data) > 30:
+                params = msgpack.unpackb(
+                    data[30:], raw=False, strict_map_key=False
+                )
+
+            # Reconstruct message
+            message = PulseMessage.__new__(PulseMessage)
+            message.envelope = {
+                "version": f"{version}.0",
+                "timestamp": timestamp,
+                "sender": f"agent-{sender_hash:08x}",
+                "receiver": None,
+                "message_id": f"compact-{msg_id_hash:016x}",
+                "nonce": f"nonce-{nonce_hash:08x}",
+                "signature": None,
+            }
+            message.type = msg_type
+            message.content = {
+                "action": action,
+                "object": target,
+                "parameters": params,
+            }
+
+            return message
+
+        except (DecodingError, EncodingError):
+            raise
+        except Exception as e:
+            raise DecodingError(f"Compact decoding failed: {e}") from e
 
 
 class Encoder:
@@ -314,6 +563,10 @@ class Encoder:
             if data[0:1] in (b"{", b"["):
                 return self.json_encoder.decode(data)
 
+            # Try Compact format (starts with magic byte 0xAE)
+            if data[0:1] == bytes([CompactEncoder.MAGIC]):
+                return self.compact_encoder.decode(data)
+
             # Try MessagePack binary
             # MessagePack starts with specific byte patterns
             return self.binary_encoder.decode(data)
@@ -339,14 +592,19 @@ class Encoder:
         """
         json_data = self.json_encoder.encode(message, indent=None)
         binary_data = self.binary_encoder.encode(message)
+        compact_data = self.compact_encoder.encode(message)
 
         json_size = len(json_data)
         binary_size = len(binary_data)
+        compact_size = len(compact_data)
 
         return {
             "json": json_size,
             "binary": binary_size,
+            "compact": compact_size,
             "json_reduction": 1.0,
             "binary_reduction": round(json_size / binary_size, 2),
-            "savings_percent": round((1 - binary_size / json_size) * 100, 1),
+            "compact_reduction": round(json_size / compact_size, 2),
+            "binary_savings_percent": round((1 - binary_size / json_size) * 100, 1),
+            "compact_savings_percent": round((1 - compact_size / json_size) * 100, 1),
         }

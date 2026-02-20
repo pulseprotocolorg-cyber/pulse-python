@@ -240,12 +240,18 @@ class TestUnifiedEncoder:
 
         assert "json" in comparison
         assert "binary" in comparison
+        assert "compact" in comparison
         assert "binary_reduction" in comparison
-        assert "savings_percent" in comparison
+        assert "compact_reduction" in comparison
+        assert "binary_savings_percent" in comparison
+        assert "compact_savings_percent" in comparison
 
         assert comparison["json"] > comparison["binary"]
+        assert comparison["json"] > comparison["compact"]
         assert comparison["binary_reduction"] > 1.0
-        assert 0 < comparison["savings_percent"] < 100
+        assert comparison["compact_reduction"] > comparison["binary_reduction"]
+        assert 0 < comparison["binary_savings_percent"] < 100
+        assert 0 < comparison["compact_savings_percent"] < 100
 
 
 class TestErrorHandling:
@@ -267,17 +273,18 @@ class TestErrorHandling:
         with pytest.raises(DecodingError):
             encoder.decode(invalid_binary)
 
-    def test_compact_encoder_not_implemented(self):
-        """Test that compact encoder raises not implemented error."""
+    def test_compact_encoder_works(self):
+        """Test that compact encoder encodes and decodes correctly."""
         from pulse import CompactEncoder
 
-        message = PulseMessage(action="ACT.QUERY.DATA", validate=False)
+        message = PulseMessage(action="ACT.QUERY.DATA")
 
-        with pytest.raises(EncodingError, match="not yet implemented"):
-            CompactEncoder.encode(message)
+        compact = CompactEncoder.encode(message)
+        assert isinstance(compact, bytes)
+        assert len(compact) == 30  # Header only, no params
 
-        with pytest.raises(DecodingError, match="not yet implemented"):
-            CompactEncoder.decode(b"\x00")
+        decoded = CompactEncoder.decode(compact)
+        assert decoded.content["action"] == "ACT.QUERY.DATA"
 
 
 class TestPerformance:

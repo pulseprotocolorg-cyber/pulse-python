@@ -837,6 +837,34 @@ This project is open source and will remain free forever.
 
 ---
 
+## Support the Project
+
+PULSE Protocol is **free and open source forever**. If you find it useful, consider supporting the development:
+
+### Crypto
+
+| Currency | Address |
+|----------|---------|
+| **BTC** | `bc1qawmyg0merz7027q0s74lgret6aaldswgk43r7z` |
+| **ETH** | `0xf39be73240a32397E9004a3c0dbC8f63E52C724B` |
+
+### Bank Transfer (Wise)
+
+**EUR:**
+- Name: Sergej Klein
+- IBAN: `BE59 9675 3051 8426`
+- SWIFT/BIC: `TRWIBEB1XXX`
+
+**USD:**
+- Name: Sergej Klein
+- Account: `985160876270679`
+- Routing (Wire/ACH): `084009519`
+- SWIFT/BIC: `TRWIUS35XXX`
+
+All donations go directly to project development and infrastructure.
+
+---
+
 **Built with ❤️ by the PULSE Protocol team**
 
 *Let's build the future of AI communication together.*

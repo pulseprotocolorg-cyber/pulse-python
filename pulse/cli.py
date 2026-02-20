@@ -220,9 +220,11 @@ def encode_message_command(args) -> int:
         if args.compare:
             sizes = encoder.get_size_comparison(message)
             print("\nSize comparison:")
-            print(f"  JSON:   {sizes['json']} bytes")
-            print(f"  Binary: {sizes['binary']} bytes ({sizes['binary_reduction']}× smaller)")
-            print(f"  Savings: {sizes['savings_percent']}%")
+            print(f"  JSON:    {sizes['json']} bytes")
+            print(f"  Binary:  {sizes['binary']} bytes ({sizes['binary_reduction']}x smaller)")
+            print(f"  Compact: {sizes['compact']} bytes ({sizes['compact_reduction']}x smaller)")
+            print(f"  Binary savings:  {sizes['binary_savings_percent']}%")
+            print(f"  Compact savings: {sizes['compact_savings_percent']}%")
 
         return 0
 

@@ -11,6 +11,8 @@ from pulse.vocabulary import Vocabulary
 from pulse.validator import MessageValidator
 from pulse.encoder import Encoder, JSONEncoder, BinaryEncoder, CompactEncoder
 from pulse.security import SecurityManager, KeyManager
+from pulse.client import PulseClient
+from pulse.server import PulseServer
 from pulse.exceptions import (
     PulseException,
     ValidationError,
@@ -34,6 +36,8 @@ __all__ = [
     "CompactEncoder",
     "SecurityManager",
     "KeyManager",
+    "PulseClient",
+    "PulseServer",
     "PulseException",
     "ValidationError",
     "EncodingError",
