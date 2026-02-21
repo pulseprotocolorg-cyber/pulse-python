@@ -1,7 +1,8 @@
-"""PULSE Protocol HTTP server for receiving messages.
+"""PULSE Protocol HTTP/HTTPS server for receiving messages.
 
 This module provides:
 - PulseServer for receiving PULSE messages over HTTP/HTTPS
+- TLS support (HTTPS) with TLSConfig integration
 - Request handler with automatic message decoding
 - Message signature verification
 - Replay attack protection
@@ -15,8 +16,15 @@ Example:
     >>> server = PulseServer(host="0.0.0.0", port=8080)
     >>> server.add_handler("ACT.QUERY.DATA", handle_message)
     >>> server.start()  # Blocks until stopped
+
+    >>> # With TLS
+    >>> from pulse.tls import TLSConfig
+    >>> tls = TLSConfig(certfile="cert.pem", keyfile="key.pem")
+    >>> server = PulseServer(port=8443, tls=tls)
+    >>> server.start()
 """
 import json
+import ssl
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from typing import Optional, Dict, Any, Callable, List
@@ -283,6 +291,7 @@ class PulseServer:
         require_signatures: bool = False,
         enable_replay_protection: bool = True,
         verbose: bool = False,
+        tls: Optional["TLSConfig"] = None,
     ) -> None:
         """
         Initialize PULSE server.
@@ -295,6 +304,7 @@ class PulseServer:
             require_signatures: Reject unsigned messages (default False)
             enable_replay_protection: Enable nonce tracking (default True)
             verbose: Enable HTTP request logging (default False)
+            tls: TLSConfig for HTTPS support (None = plain HTTP)
 
         Example:
             >>> server = PulseServer(port=9090, agent_id="my-server")
@@ -302,10 +312,16 @@ class PulseServer:
             ...     security=SecurityManager(secret_key="shared-key"),
             ...     require_signatures=True
             ... )
+
+            >>> # With TLS
+            >>> from pulse.tls import TLSConfig
+            >>> tls = TLSConfig(certfile="cert.pem", keyfile="key.pem")
+            >>> server = PulseServer(port=8443, tls=tls)
         """
         self.host = host
         self.port = port
         self.agent_id = agent_id
+        self.tls = tls
 
         self._handlers: Dict[str, Callable] = {}
         self._httpd: Optional[HTTPServer] = None
@@ -320,6 +336,7 @@ class PulseServer:
             "nonce_store": set() if enable_replay_protection else None,
             "encoding": "json",
             "verbose": verbose,
+            "tls_enabled": tls is not None,
             "stats": {
                 "messages_received": 0,
                 "errors": 0,
@@ -370,9 +387,15 @@ class PulseServer:
         """
         Start the PULSE server.
 
+        If TLS is configured, the server will use HTTPS. Otherwise plain HTTP.
+
         Args:
             blocking: If True, blocks until server is stopped (default True).
                      If False, starts in background thread.
+
+        Raises:
+            FileNotFoundError: If TLS cert/key files don't exist
+            ssl.SSLError: If TLS configuration is invalid
 
         Example:
             >>> server.start()  # Blocks
@@ -382,6 +405,14 @@ class PulseServer:
         """
         self._httpd = HTTPServer((self.host, self.port), PulseRequestHandler)
         self._httpd.pulse_config = self._config
+
+        # Wrap socket with TLS if configured
+        if self.tls is not None:
+            ssl_context = self.tls.create_server_context()
+            self._httpd.socket = ssl_context.wrap_socket(
+                self._httpd.socket, server_side=True
+            )
+
         self._config["stats"]["started_at"] = (
             datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         )
@@ -430,7 +461,8 @@ class PulseServer:
     @property
     def url(self) -> str:
         """Get the server's base URL."""
-        return f"http://{self.host}:{self.port}"
+        scheme = "https" if self.tls else "http"
+        return f"{scheme}://{self.host}:{self.port}"
 
     def __repr__(self) -> str:
         """Return string representation."""

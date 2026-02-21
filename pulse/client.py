@@ -67,6 +67,9 @@ class PulseClient:
         max_retries: int = 3,
         retry_base_delay: float = 1.0,
         verify_ssl: bool = True,
+        tls: Optional["TLSConfig"] = None,
+        client_certfile: Optional[str] = None,
+        client_keyfile: Optional[str] = None,
     ) -> None:
         """
         Initialize PULSE client.
@@ -80,6 +83,9 @@ class PulseClient:
             max_retries: Maximum retry attempts for transient failures (default 3)
             retry_base_delay: Base delay in seconds for exponential backoff (default 1.0)
             verify_ssl: Whether to verify SSL certificates (default True)
+            tls: TLSConfig for advanced TLS settings (overrides verify_ssl)
+            client_certfile: Path to client certificate for mTLS
+            client_keyfile: Path to client private key for mTLS
 
         Raises:
             ValueError: If encoding format is not supported
@@ -91,6 +97,11 @@ class PulseClient:
             ...     encoding="binary",
             ...     timeout=10
             ... )
+
+            >>> # With TLS config and custom CA
+            >>> from pulse.tls import TLSConfig
+            >>> tls = TLSConfig(cafile="/path/to/ca.pem")
+            >>> client = PulseClient("https://agent.example.com", tls=tls)
         """
         if encoding not in ("json", "binary"):
             raise ValueError(
@@ -105,9 +116,17 @@ class PulseClient:
         self.max_retries = max_retries
         self.retry_base_delay = retry_base_delay
         self.verify_ssl = verify_ssl
+        self.tls = tls
 
-        # SSL context
-        self._ssl_context = self._create_ssl_context()
+        # SSL context - use TLSConfig if provided, otherwise basic
+        if tls is not None:
+            self._ssl_context = tls.create_client_context(
+                verify=verify_ssl,
+                client_certfile=client_certfile,
+                client_keyfile=client_keyfile,
+            )
+        else:
+            self._ssl_context = self._create_ssl_context()
 
         # Stats tracking
         self._stats = {

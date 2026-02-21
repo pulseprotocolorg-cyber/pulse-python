@@ -13,6 +13,7 @@ from pulse.encoder import Encoder, JSONEncoder, BinaryEncoder, CompactEncoder
 from pulse.security import SecurityManager, KeyManager
 from pulse.client import PulseClient
 from pulse.server import PulseServer
+from pulse.tls import TLSConfig, generate_self_signed_cert
 from pulse.exceptions import (
     PulseException,
     ValidationError,
@@ -38,6 +39,8 @@ __all__ = [
     "KeyManager",
     "PulseClient",
     "PulseServer",
+    "TLSConfig",
+    "generate_self_signed_cert",
     "PulseException",
     "ValidationError",
     "EncodingError",
