@@ -8,10 +8,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- Future: TLS integration for transport security
-- Future: Compact encoding (13× size reduction)
-- Future: Network client/server implementation
-- Future: Expand vocabulary to 1,000 concepts
+- Compact encoding (13× size reduction)
+- CI/CD with GitHub Actions
+- PyPI publication
+- Framework integrations (Flask, FastAPI)
+- Implementations in Rust, Go, JavaScript
+
+## [0.5.0] - 2026-02-22
+
+### Added 🌐
+- **TLS Transport Layer** (Security Layer 1)
+  - `TLSConfig` dataclass for SSL/TLS configuration
+  - `generate_self_signed_cert()` for development certificates
+  - Server-side SSL context with certificate/key loading
+  - Client-side SSL context with CA verification
+  - Mutual TLS (mTLS) support for agent authentication
+  - TLS 1.2+ minimum version enforcement
+  - Custom cipher suite configuration
+- **Vocabulary expanded to 1,000 semantic concepts**
+  - ENT (Entities): 100 concepts
+  - ACT (Actions): 200 concepts
+  - PROP (Properties): 150 concepts
+  - REL (Relations): 100 concepts
+  - LOG (Logic): 50 concepts
+  - MATH (Mathematics): 100 concepts
+  - TIME (Temporal): 50 concepts
+  - SPACE (Spatial): 50 concepts
+  - DATA (Data Types): 100 concepts
+  - META (Meta): 100 concepts
+- **HTTP Client/Server** for agent-to-agent communication
+  - `PulseServer` with handler registration and wildcard matching
+  - `PulseClient` with send, fire-and-forget, ping, and stats
+  - JSON and binary (MessagePack) encoding over HTTP
+  - HMAC signing integration for defense in depth
+  - Health check endpoint (`/health`)
+- **31 TLS tests** covering certificates, contexts, HTTPS communication
+- **New example: 08_tls_transport.py** demonstrating HTTPS + HMAC signing
+- `cryptography` dependency for certificate generation
+
+### Changed
+- Test suite expanded from 165+ to **256 tests**
+- `PulseServer` accepts `tls` parameter for HTTPS
+- `PulseClient` accepts `tls`, `verify_ssl`, `client_certfile`, `client_keyfile`
+- `pulse/__init__.py` exports `TLSConfig` and `generate_self_signed_cert`
+- Server URL property returns `https://` when TLS configured
+
+### Fixed
+- `test_validate_new_act_concepts` updated: replaced non-existent `ACT.LEARN.TRAIN` with `ACT.PROCESS.BATCH`
 
 ## [0.4.0] - 2025-02-05
 
