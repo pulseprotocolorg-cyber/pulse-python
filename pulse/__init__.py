@@ -14,6 +14,7 @@ from pulse.security import SecurityManager, KeyManager
 from pulse.client import PulseClient
 from pulse.server import PulseServer
 from pulse.tls import TLSConfig, generate_self_signed_cert
+from pulse.adapter import PulseAdapter, AdapterError, AdapterConnectionError
 from pulse.exceptions import (
     PulseException,
     ValidationError,
@@ -41,6 +42,9 @@ __all__ = [
     "PulseServer",
     "TLSConfig",
     "generate_self_signed_cert",
+    "PulseAdapter",
+    "AdapterError",
+    "AdapterConnectionError",
     "PulseException",
     "ValidationError",
     "EncodingError",

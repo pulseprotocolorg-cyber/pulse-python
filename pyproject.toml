@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pulse-protocol"
-version = "0.4.0"
+version = "0.5.0"
 description = "Universal semantic protocol for AI-to-AI communication"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -44,11 +44,11 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/pulse-protocol/pulse-python"
-Documentation = "https://github.com/pulse-protocol/pulse-python#readme"
-Repository = "https://github.com/pulse-protocol/pulse-python"
-"Bug Reports" = "https://github.com/pulse-protocol/pulse-python/issues"
-Changelog = "https://github.com/pulse-protocol/pulse-python/blob/master/CHANGELOG.md"
+Homepage = "https://github.com/pulseprotocolorg-cyber/pulse-python"
+Documentation = "https://github.com/pulseprotocolorg-cyber/pulse-python#readme"
+Repository = "https://github.com/pulseprotocolorg-cyber/pulse-python"
+"Bug Reports" = "https://github.com/pulseprotocolorg-cyber/pulse-python/issues"
+Changelog = "https://github.com/pulseprotocolorg-cyber/pulse-python/blob/master/CHANGELOG.md"
 
 [project.scripts]
 pulse = "pulse.cli:main"
